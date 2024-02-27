@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Navbar</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="Form.html">Create user</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="users.html">Users</a>
+              </li>
+              <li class="nav-item dropdown">
+          </div>
+        </div>
+      </nav>
+    <div class="container mt-5">
+        <h1>User Management</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Password</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Edit User Form -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="editEmail" aria-describedby="editEmailHelp">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="editPassword">
+                    </div>
+                    <input type="hidden" id="editUserId"> <!-- Hidden field to store user ID -->
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+    const populateEditForm = (userId, email, password) => {
+        document.getElementById('editUserId').value = userId;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editPassword').value = password;
+    };
+
+    const editUser = (userId, email, password) => {
+        populateEditForm(userId, email, password);
+        const modal = document.getElementById('editUserModal');
+        modal.classList.add('show');
+        modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+    };
+
+    const submitEditedUser = async (event) => {
+        event.preventDefault();
+        const userId = document.getElementById('editUserId').value;
+        const email = document.getElementById('editEmail').value;
+        const password = document.getElementById('editPassword').value;
+
+        try {
+            const response = await fetch(`https://retoolapi.dev/mILLWx/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ Email: email, Password: password })
+            });
+            if (response.ok) {
+                console.log(`User with ID ${userId} updated successfully.`);
+                const modal = document.getElementById('editUserModal');
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                populateUserTable(); 
+            } else {
+                console.error('Failed to update user:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+        }
+    };
+    document.getElementById('editUserForm').addEventListener('submit', submitEditedUser);
+       
+    const getUsers = async () => {
+            try {
+                const response = await fetch('https://retoolapi.dev/mILLWx/users');
+                const users = await response.json();
+                return users;
+            } catch (error) {
+                console.error('Error getting users:', error);
+                return [];
+            }
+        };
+
+        const populateUserTable = async () => {
+            const users = await getUsers();
+            const tableBody = document.getElementById('userTableBody');
+
+            tableBody.innerHTML = '';
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.Email}</td>
+                    <td>${user.Password}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="editUser('${user.id}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateUserTable();
+        });
+
+        const deleteUser = async (userId) => {
+            try {
+                const response = await fetch(`https://retoolapi.dev/mILLWx/users/${userId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    console.log(`User with ID ${userId} deleted successfully.`);
+                    // Reload the table after deletion
+                    populateUserTable();
+                } else {
+                    console.error('Failed to delete user:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+            }
+        };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+</body>
+</html>
+
+
+
